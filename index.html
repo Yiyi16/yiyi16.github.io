@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#ffffff">
+  <meta name="site-version" content="0169545d4cf17816">
   <title>Yiyi Zhang</title>
   <meta name="description" content="Yiyi Zhang, visiting scientist at Cornell University and Siyuan Fellow at Shanghai Jiao Tong University. Reinforcement learning, LLMs, cybersecurity, and generative models for gait.">
   <meta property="og:title" content="Yiyi Zhang">
@@ -11,8 +12,8 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://yiyi16.github.io/">
   <link rel="canonical" href="https://yiyi16.github.io/">
-  <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=d5d9cb205c6a">
+  <link rel="stylesheet" href="styles.css?v=60f7b9bbd017">
   <style>.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}</style>
 </head>
 <body id="top">
@@ -28,7 +29,7 @@
           <a href="https://scholar.google.com/citations?user=ViLZaDsAAAAJ">Google Scholar</a>
         </nav>
       </div>
-      <figure class="identity"><img class="portrait" src="portrait.png" alt="Yiyi Zhang" width="210" height="255" fetchpriority="high"></figure>
+      <figure class="identity"><img class="portrait" src="portrait.png?v=e67c267db7e7" alt="Yiyi Zhang" width="210" height="255" fetchpriority="high"></figure>
     </header>
     <section class="section" id="papers" aria-label="Publications">
       <div class="section-header publication-header">
@@ -122,5 +123,79 @@
       <a href="#top">Back to top ↑</a>
     </footer>
   </main>
+  <script id="site-updater">
+(() => {
+  if (!/^https?:$/.test(location.protocol)) return;
+  const versionMeta = document.querySelector('meta[name="site-version"]');
+  if (!versionMeta) return;
+
+  let currentVersion = versionMeta.content;
+  let checking = false;
+  let lastCheck = 0;
+
+  async function checkForUpdates() {
+    if (document.hidden || checking || Date.now() - lastCheck < 5000) return;
+    checking = true;
+    lastCheck = Date.now();
+    try {
+      const url = new URL(location.pathname, location.origin);
+      url.searchParams.set('__site_check', String(Date.now()));
+      const response = await fetch(url, {
+        cache: 'no-store',
+        credentials: 'omit',
+        mode: 'same-origin'
+      });
+      if (!response.ok) return;
+      const fresh = new DOMParser().parseFromString(await response.text(), 'text/html');
+      const nextVersion = fresh.querySelector('meta[name="site-version"]')?.content;
+      const nextMain = fresh.querySelector('main.page');
+      const currentMain = document.querySelector('main.page');
+      if (!/^[a-f0-9]{16}$/.test(nextVersion || '') || !nextMain || !currentMain) return;
+      if (nextVersion === currentVersion && nextMain.innerHTML === currentMain.innerHTML) return;
+      if (document.activeElement?.matches('input, textarea, select, [contenteditable="true"]') || window.getSelection()?.toString()) return;
+
+      const position = { left: window.scrollX, top: window.scrollY };
+      const marker = Array.from(currentMain.querySelectorAll('[id]'))
+        .map(node => ({ id: node.id, rect: node.getBoundingClientRect() }))
+        .filter(item => item.rect.bottom > 0 && item.rect.top < window.innerHeight)
+        .sort((a, b) => Math.abs(a.rect.top) - Math.abs(b.rect.top))[0];
+
+      for (const selector of ['link[rel="stylesheet"]', 'link[rel="icon"]', 'link[rel="canonical"]']) {
+        const next = fresh.querySelector(selector);
+        const existing = document.querySelector(selector);
+        if (next && existing && next.getAttribute('href') !== existing.getAttribute('href')) {
+          existing.setAttribute('href', next.getAttribute('href'));
+        }
+      }
+      for (const selector of ['meta[name="description"]', 'meta[property="og:title"]', 'meta[property="og:description"]', 'meta[property="og:url"]']) {
+        const next = fresh.querySelector(selector);
+        const existing = document.querySelector(selector);
+        if (next && existing) existing.content = next.content;
+      }
+
+      currentMain.replaceWith(document.importNode(nextMain, true));
+      document.title = fresh.title;
+      versionMeta.content = nextVersion;
+      currentVersion = nextVersion;
+      requestAnimationFrame(() => {
+        const anchor = marker && document.getElementById(marker.id);
+        const top = anchor ? window.scrollY + anchor.getBoundingClientRect().top - marker.rect.top : position.top;
+        window.scrollTo({ left: position.left, top, behavior: 'instant' });
+      });
+    } catch {
+      // The existing static page remains usable when offline or during a deployment.
+    } finally {
+      checking = false;
+    }
+  }
+
+  window.addEventListener('pageshow', checkForUpdates);
+  window.addEventListener('focus', checkForUpdates);
+  window.addEventListener('online', checkForUpdates);
+  document.addEventListener('visibilitychange', checkForUpdates);
+  window.setInterval(checkForUpdates, 60000);
+  checkForUpdates();
+})();
+  </script>
 </body>
 </html>
